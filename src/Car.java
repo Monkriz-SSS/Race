@@ -1,19 +1,29 @@
-public class Car implements Runnable{
+import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 
+public class Car implements Runnable {
     private static int CARS_COUNT;
-    static {
-        CARS_COUNT = 0;
-    }
     private Race race;
     private int speed;
     private String name;
-    public String getName() {
+    private static CyclicBarrier startBarrier;
+    private static CountDownLatch countDownLatchFinish;
+    private static CountDownLatch countDownLatchReady;
+
+    static {
+        countDownLatchFinish = MainClass.countDownLatchFinish;
+        countDownLatchReady = MainClass.countDownLatchReady;
+        startBarrier = MainClass.startBarrier;
+    }
+
+    String getName() {
         return name;
     }
-    public int getSpeed() {
+    int getSpeed() {
         return speed;
     }
-    public Car(Race race, int speed) {
+    Car(Race race, int speed) {
         this.race = race;
         this.speed = speed;
         CARS_COUNT++;
@@ -24,14 +34,17 @@ public class Car implements Runnable{
         try {
             System.out.println(this.name + " готовится");
             Thread.sleep(500 + (int)(Math.random() * 800));
+            countDownLatchReady.countDown();
             System.out.println(this.name + " готов");
+            startBarrier.await();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        for (int i = 0; i < race.getStages().size(); i++) {
-            race.getStages().get(i).go(this);
+        final ArrayList<Stage> stages = race.getStages();
+        for (Stage stage : stages) {
+            stage.go(this);
         }
+        countDownLatchFinish.countDown();
     }
 }
-
 
